@@ -1,0 +1,35 @@
+name: Build Jarvis APK
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: unzip -o jarvis_apk_full_v2.zip -d proj
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+      - name: Install buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install buildozer "cython<3"
+      - name: Add Jarvis services
+        working-directory: proj
+        run: |
+          git clone --depth 1 --branch master https://github.com/kivy/python-for-android.git p4a
+          python inject.py p4a
+      - name: Build APK
+        working-directory: proj
+        run: buildozer -v android debug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-apk
+          path: proj/bin/*.apk
